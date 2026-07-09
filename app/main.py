@@ -190,7 +190,7 @@ async def _run_conversion_locked(
     logger.info("job %s: konverze začala (mode=%s, blur=%s, resolution=%s)",
                 job.id, mode.value, blur_level.value, resolution.value)
     try:
-        await convert_video(
+        canvas_size = await convert_video(
             mode,
             input_path,
             job.output_path,
@@ -209,6 +209,9 @@ async def _run_conversion_locked(
         logger.exception("job %s: neočekávaná chyba konverze", job.id)
         return
 
+    # Název ke stažení podle skutečného výstupu, např. "dovolena-16x9-1080p.mp4"
+    # (u režimu "auto" je rozlišení známé až po konverzi).
+    job.download_name = f"{input_path.stem}-16x9-{canvas_size[1]}p.mp4"
     job.progress = 100.0
     job.status = "done"
     logger.info("job %s: hotovo za %.1f s", job.id, time.monotonic() - started)

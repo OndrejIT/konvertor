@@ -105,6 +105,9 @@ def _convert_and_download(client, sample_video, mode: str) -> None:
     assert download.status_code == 200
     assert download.headers["content-type"] == "video/mp4"
     assert len(download.content) > 1000
+    # název ke stažení: <původní-stem>-16x9-<výška>p.mp4; zdroj 320x640
+    # v režimu auto -> plátno 640x360
+    assert 'filename="sample-16x9-360p.mp4"' in download.headers["content-disposition"]
 
     # opakované stažení funguje (soubor se po prvním stažení nemaže)
     assert client.get(f"/jobs/{job_id}/download").status_code == 200

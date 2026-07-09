@@ -211,7 +211,8 @@ async def convert_video(
     blur_level: BlurLevel = BlurLevel.MEDIUM,
     resolution: Resolution = Resolution.AUTO,
     on_progress: ProgressCallback | None = None,
-) -> None:
+) -> tuple[int, int]:
+    """Zkonvertuje video a vrátí skutečné rozměry výstupního plátna."""
     duration = await probe_duration_seconds(input_path)
     canvas_size = await resolve_canvas_size(resolution, input_path)
     blur = BLUR_PRESETS[blur_level]
@@ -266,3 +267,5 @@ async def convert_video(
 
     if on_progress:
         on_progress(100.0)
+
+    return canvas_size
