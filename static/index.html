@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Video Konvertor</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎬</text></svg>" />
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --border: #e2e5ea;
+    --text: #1a1d23;
+    --muted: #6b7280;
+    --accent: #4f6df5;
+    --accent-dim: #eef1ff;
+    --error: #d9483a;
+    --error-dim: #fdecea;
+    --ok: #1f9d55;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --card: #1c1f26;
+      --border: #2b2f38;
+      --text: #eef0f4;
+      --muted: #9aa1ac;
+      --accent: #7b93ff;
+      --accent-dim: #232a44;
+      --error: #ff6b5e;
+      --error-dim: #3a2321;
+      --ok: #3ecb7b;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 3rem 1.25rem;
+  }
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  h1 {
+    font-size: 1.25rem;
+    margin: 0 0 1.5rem;
+  }
+
+  label.field-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.82rem;
+    margin-bottom: 0.4rem;
+  }
+  .field { margin-bottom: 1.25rem; }
+  .field-row {
+    display: flex;
+    gap: 0.9rem;
+  }
+  .field-row > div { flex: 1; min-width: 0; }
+
+  select, input[type="password"] {
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.95rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  select:disabled, input:disabled { opacity: 0.6; }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .dropzone.drag-over { border-color: var(--accent); background: var(--accent-dim); }
+  .dropzone.disabled { opacity: 0.55; pointer-events: none; }
+  .dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .dropzone .icon { font-size: 1.5rem; margin-bottom: 0.35rem; }
+  .dropzone .main-text { font-size: 0.9rem; font-weight: 600; }
+  .dropzone .hint-text { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+
+  .file-list {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.55rem 0.7rem;
+  }
+  .file-item video {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: #000;
+    flex-shrink: 0;
+  }
+  .file-item .meta { flex: 1; min-width: 0; }
+  .file-item .name {
+    font-size: 0.84rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .file-item .detail {
+    font-size: 0.76rem;
+    color: var(--muted);
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .file-item .detail a { color: var(--accent); font-weight: 600; }
+  .file-item .detail .err { color: var(--error); }
+  .file-item .detail .ok { color: var(--ok); font-weight: 600; }
+  .file-item .mini-track {
+    height: 4px;
+    border-radius: 4px;
+    background: var(--border);
+    overflow: hidden;
+    margin-top: 0.35rem;
+  }
+  .file-item .mini-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.25s ease;
+  }
+  .file-item .remove {
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.3rem 0.5rem;
+    flex-shrink: 0;
+  }
+  .file-item .remove:hover { color: var(--error); }
+  .file-item .remove:disabled { opacity: 0.4; cursor: default; }
+
+  button.submit {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    margin-top: 0.25rem;
+  }
+  button.submit:disabled { opacity: 0.55; cursor: default; }
+
+  .overall {
+    display: none;
+    margin-top: 1.1rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  .overall.visible { display: block; }
+
+  .banner {
+    display: none;
+    margin-top: 1.25rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+  .banner.error { display: block; background: var(--error-dim); color: var(--error); }
+  .banner.success { display: block; background: var(--accent-dim); color: var(--accent); }
+
+  .success-actions {
+    margin-top: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+  }
+  .success-actions button {
+    border: 1px solid currentColor;
+    background: none;
+    color: inherit;
+    font-weight: 600;
+    font-size: 0.82rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .success-actions button:hover { opacity: 0.8; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Video Konvertor</h1>
+
+    <form id="upload-form">
+      <div class="field">
+        <label class="field-label" for="password">Heslo</label>
+        <input type="password" id="password" name="password" required autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="mode">Typ konverze</label>
+        <select id="mode" name="mode">
+          <option value="to_16_9_blur">Na 16:9 s rozmazaným pozadím</option>
+          <option value="to_16_9_black_bars">Na 16:9 s černými pruhy</option>
+        </select>
+      </div>
+
+      <div class="field field-row">
+        <div id="blur-field">
+          <label class="field-label" for="blur">Míra rozmazání</label>
+          <select id="blur" name="blur">
+            <option value="light">Slabé</option>
+            <option value="medium" selected>Střední</option>
+            <option value="strong">Silné</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="resolution">Rozlišení</label>
+          <select id="resolution" name="resolution">
+            <option value="auto" selected>Podle videa (výchozí)</option>
+            <option value="720p">HD (1280×720)</option>
+            <option value="1080p">Full HD (1920×1080)</option>
+            <option value="4k">4K (3840×2160)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Video soubory</label>
+
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="file" accept="video/*" multiple />
+          <div class="icon">🎬</div>
+          <div class="main-text">Klikni nebo přetáhni videa</div>
+          <div class="hint-text">MP4, MOV, MKV…</div>
+        </div>
+
+        <div class="file-list" id="file-list"></div>
+      </div>
+
+      <button type="submit" class="submit" id="submit-btn" disabled>Nahrát a zkonvertovat</button>
+    </form>
+
+    <div class="overall" id="overall"></div>
+    <div class="banner" id="banner"></div>
+  </div>
+
+<script>
+const form = document.getElementById("upload-form");
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("file");
+const fileList = document.getElementById("file-list");
+const submitBtn = document.getElementById("submit-btn");
+const overall = document.getElementById("overall");
+const banner = document.getElementById("banner");
+const modeSelect = document.getElementById("mode");
+const blurField = document.getElementById("blur-field");
+const passwordInput = document.getElementById("password");
+
+let queue = [];
+let processing = false;
+let maxSizeMb = 100;
+
+function updateBlurFieldVisibility() {
+  blurField.classList.toggle("hidden", modeSelect.value !== "to_16_9_blur");
+}
+modeSelect.addEventListener("change", updateBlurFieldVisibility);
+updateBlurFieldVisibility();
+
+function formatSize(bytes) {
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${(bytes / 1024).toFixed(0)} KB`;
+}
+
+function showBanner(type, message) {
+  banner.className = "banner " + type;
+  banner.innerHTML = message;
+}
+
+function clearBanner() {
+  banner.className = "banner";
+  banner.innerHTML = "";
+}
+
+function updateSubmitState() {
+  const waiting = queue.filter((q) => q.status === "waiting").length;
+  submitBtn.disabled = processing || waiting === 0;
+  if (processing) {
+    submitBtn.textContent = "Zpracovávám…";
+  } else {
+    submitBtn.textContent = waiting > 1
+      ? `Nahrát a zkonvertovat (${waiting})`
+      : "Nahrát a zkonvertovat";
+  }
+}
+
+function createItem(file) {
+  const el = document.createElement("div");
+  el.className = "file-item";
+
+  const video = document.createElement("video");
+  video.muted = true;
+  const previewUrl = URL.createObjectURL(file);
+  video.src = previewUrl;
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const name = document.createElement("div");
+  name.className = "name";
+  name.textContent = file.name;
+  const detail = document.createElement("div");
+  detail.className = "detail";
+  detail.textContent = formatSize(file.size);
+  const track = document.createElement("div");
+  track.className = "mini-track hidden";
+  const fill = document.createElement("div");
+  fill.className = "mini-fill";
+  track.appendChild(fill);
+  meta.append(name, detail, track);
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "remove";
+  removeBtn.textContent = "✕";
+
+  el.append(video, meta, removeBtn);
+
+  const item = { file, el, detail, track, fill, removeBtn, previewUrl, status: "waiting" };
+  removeBtn.addEventListener("click", () => removeItem(item));
+  return item;
+}
+
+function removeItem(item) {
+  if (processing) return;
+  URL.revokeObjectURL(item.previewUrl);
+  item.el.remove();
+  queue = queue.filter((q) => q !== item);
+  updateSubmitState();
+}
+
+function addFiles(files) {
+  for (const file of files) {
+    const duplicate = queue.some((q) => q.file.name === file.name && q.file.size === file.size);
+    if (duplicate) continue;
+    const item = createItem(file);
+    queue.push(item);
+    fileList.appendChild(item.el);
+    // příliš velký soubor rovnou označit - ušetří marné nahrávání
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      item.status = "error";
+      setItemStatus(item, `<span class="err">Příliš velký soubor (max ${maxSizeMb} MB)</span>`);
+    }
+  }
+  fileInput.value = "";
+  updateSubmitState();
+}
+
+fileInput.addEventListener("change", () => addFiles(fileInput.files));
+
+["dragenter", "dragover"].forEach((evt) =>
+  dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropzone.classList.add("drag-over");
+  })
+);
+["dragleave", "drop"].forEach((evt) =>
+  dropzone.addEventListener(evt, (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("drag-over");
+  })
+);
+dropzone.addEventListener("drop", (e) => {
+  if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+});
+
+function setItemProgress(item, percent, label) {
+  item.track.classList.remove("hidden");
+  item.fill.style.width = Math.max(0, Math.min(100, percent)) + "%";
+  item.detail.textContent = `${label} ${percent.toFixed(0)} %`;
+}
+
+function setItemStatus(item, html) {
+  item.track.classList.add("hidden");
+  item.detail.innerHTML = html;
+}
+
+function setControlsLocked(locked) {
+  processing = locked;
+  passwordInput.disabled = locked;
+  modeSelect.disabled = locked;
+  document.getElementById("blur").disabled = locked;
+  document.getElementById("resolution").disabled = locked;
+  dropzone.classList.toggle("disabled", locked);
+  queue.forEach((item) => (item.removeBtn.disabled = locked));
+  updateSubmitState();
+}
+
+function uploadItem(item) {
+  return new Promise((resolve, reject) => {
+    const fd = new FormData();
+    fd.append("password", passwordInput.value);
+    fd.append("mode", modeSelect.value);
+    fd.append("blur", document.getElementById("blur").value);
+    fd.append("resolution", document.getElementById("resolution").value);
+    fd.append("file", item.file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", "/jobs");
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        setItemProgress(item, (e.loaded / e.total) * 100, "Nahrávám…");
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status === 202) {
+        resolve(JSON.parse(xhr.responseText).job_id);
+      } else {
+        let detail = "Chyba serveru (" + xhr.status + ")";
+        try {
+          detail = JSON.parse(xhr.responseText).detail || detail;
+        } catch (_) {}
+        const error = new Error(detail);
+        error.status = xhr.status;
+        reject(error);
+      }
+    });
+
+    xhr.addEventListener("error", () => reject(new Error("Nahrávání se nezdařilo (síťová chyba).")));
+    xhr.send(fd);
+  });
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function waitForJob(item, jobId) {
+  while (true) {
+    const resp = await fetch(`/jobs/${jobId}`);
+    if (!resp.ok) throw new Error("Nepodařilo se zjistit stav zpracování.");
+    const data = await resp.json();
+
+    if (data.status === "done") return;
+    if (data.status === "error") throw new Error(data.error || "neznámá chyba");
+
+    if (data.status === "converting") {
+      setItemProgress(item, data.progress, "Konvertuji…");
+    } else {
+      setItemStatus(item, "Čeká ve frontě…");
+    }
+    await sleep(800);
+  }
+}
+
+function triggerDownload(url) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+async function verifyPassword() {
+  const fd = new FormData();
+  fd.append("password", passwordInput.value);
+  const resp = await fetch("/auth", { method: "POST", body: fd });
+  if (resp.status === 204) return true;
+  showBanner("error", resp.status === 401 ? "Neplatné heslo." : `Ověření hesla selhalo (${resp.status}).`);
+  return false;
+}
+
+async function processQueue() {
+  setControlsLocked(true);
+  clearBanner();
+
+  // Heslo se ověří předem - jinak by se u špatného hesla zbytečně nahrál
+  // celý první soubor, než by server vrátil 401.
+  if (!(await verifyPassword())) {
+    setControlsLocked(false);
+    return;
+  }
+
+  overall.classList.add("visible");
+
+  let doneCount = 0;
+  let errorCount = 0;
+  // Zpracovávají se jen nové soubory - už hotové (z předchozí dávky) se přeskočí.
+  const pending = queue.filter((q) => q.status === "waiting");
+  const total = pending.length;
+
+  for (let i = 0; i < pending.length; i++) {
+    const item = pending[i];
+    overall.textContent = `Zpracovávám soubor ${i + 1} z ${total}…`;
+
+    try {
+      setItemProgress(item, 0, "Nahrávám…");
+      const jobId = await uploadItem(item);
+      await waitForJob(item, jobId);
+
+      const downloadUrl = `/jobs/${jobId}/download`;
+      item.status = "done";
+      setItemStatus(item, `<span class="ok">Hotovo</span> · <a href="${downloadUrl}">Stáhnout</a>`);
+      triggerDownload(downloadUrl);
+      doneCount++;
+    } catch (err) {
+      item.status = "error";
+      setItemStatus(item, `<span class="err">Chyba: ${err.message}</span>`);
+      errorCount++;
+      // Špatné heslo zastaví celou frontu - u dalších souborů by dopadlo stejně.
+      if (err.status === 401) {
+        for (let j = i + 1; j < pending.length; j++) {
+          setItemStatus(pending[j], "Zastaveno (neplatné heslo)");
+        }
+        break;
+      }
+    }
+  }
+
+  overall.classList.remove("visible");
+  setControlsLocked(false);
+
+  const summary = errorCount === 0
+    ? `Hotovo — ${doneCount === 1 ? "video je zkonvertované" : `všech ${doneCount} videí je zkonvertovaných`}, stahování proběhlo.`
+    : `Dokončeno: ${doneCount} v pořádku, ${errorCount} s chybou.`;
+
+  showBanner(
+    errorCount === 0 ? "success" : "error",
+    `${summary}
+     <div class="success-actions">
+       <button type="button" id="reset-btn">Nahrát další</button>
+     </div>`
+  );
+}
+
+function resetForm() {
+  queue.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+  queue = [];
+  fileList.innerHTML = "";
+  fileInput.value = "";
+  clearBanner();
+  updateSubmitState();
+}
+
+banner.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "reset-btn") resetForm();
+});
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (processing || queue.length === 0) return;
+  processQueue();
+});
+
+fetch("/config")
+  .then((r) => r.json())
+  .then((cfg) => {
+    maxSizeMb = cfg.max_size_mb;
+    document.querySelector(".dropzone .hint-text").textContent = `MP4, MOV, MKV… max ${cfg.max_size_mb} MB na soubor`;
+  })
+  .catch(() => {});
+</script>
+</body>
+</html>

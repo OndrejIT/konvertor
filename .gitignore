@@ -1,0 +1,20 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Nahraná a zkonvertovaná videa
+/work/
+
+# Konfigurace obsahuje tajné heslo - verzuje se jen config.example.toml
+config.toml
+config.local.toml
+
+# Testy
+.pytest_cache/

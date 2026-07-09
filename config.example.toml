@@ -1,0 +1,33 @@
+# Konfigurace konvertoru videa - zkopíruj jako config.toml a nastav heslo:
+#   cp config.example.toml config.toml
+# config.toml je v .gitignore, protože obsahuje tajné heslo.
+
+[security]
+# Heslo, které musí uživatel zadat, aby mohl nahrát a zkonvertovat video.
+upload_password = "zmen-me-na-tajne-heslo"
+
+[upload]
+# Maximální povolená velikost nahrávaného videa v megabajtech.
+max_size_mb = 100
+# Adresář pro dočasné soubory (nahrané i zkonvertované video).
+# Prázdné = systémový temp adresář (na Linuxu bývá /tmp tmpfs = v RAM).
+# Pro jistotu RAM disku lze nastavit "/dev/shm" (Linux) - soubory se stejně
+# po každé konverzi hned mažou.
+work_dir = ""
+# Jak dlouho (v sekundách) se po dokončení/chybě drží nestažený job a jeho
+# soubory, než se automaticky smažou (pojistka proti zapomenutému stažení).
+job_ttl_seconds = 3600
+# Jak často (v sekundách) appka kontroluje work_dir a maže staré joby.
+sweep_interval_seconds = 600
+
+[ffmpeg]
+# Cesta k ffmpeg binárce (musí být v PATH, nebo zadej absolutní cestu).
+binary = "ffmpeg"
+# Cesta k ffprobe binárce - používá se pro zjištění délky videa a spočítání
+# procenta průběhu konverze.
+probe_binary = "ffprobe"
+# Na kolik CPU jader je omezené kódování (-threads). Nižší hodnota =
+# konverze nesebere serveru celý výkon, ale trvá o něco déle.
+threads = 2
+# Kolik sekund maximálně může konverze trvat, než se přeruší.
+timeout_seconds = 1800
